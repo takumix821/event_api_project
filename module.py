@@ -30,7 +30,7 @@ client = pymongo.MongoClient(mongo_access)
 
 db = client['event_site']
 event_info_collection = db['event_information']
-
+space_info_collection = db['space_information']
 
 # ----- google calendar setting ----- 
 
@@ -130,3 +130,26 @@ def add_attendees(gcalendar_id, attendee_email):
     # print the new attendees list
     get_updated_event = service.events().get(calendarId = calendarId, eventId = event['id']).execute()
     print('Update attendees, new attendees list became ', get_updated_event['attendees'])
+
+# ----- build space function ----- 
+def build_space(**kwargs): 
+    '''
+    Input the collection and kwargs to building events space in the target DB. 
+    - kwargs: space_name, space_capacity, type
+    '''
+    # create a dict to put info into DB
+    try: 
+        max_space_id = space_info_collection.find_one(sort = [('space_id', -1)])['space_id']
+    except:
+        max_space_id = 0
+
+    space_info = {
+    'space_id': max_space_id + 1, 
+    'space_name': kwargs['space_name'], 
+    'space_capacity': kwargs['space_capacity'], 
+    'type': kwargs['type'], 
+    'updt_date': datetime.now(), 
+    }
+
+    space_info_collection.insert_many([space_info])
+    print('Space info inserted to mongodb. ')
