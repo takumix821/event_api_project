@@ -44,8 +44,12 @@ def show_events():
         space_name_lst = space_info_collection.find({'space_capacity': {'$eq': capacity}}).distinct('space_name')
         filter_dict['event_location'] = {'$in': space_name_lst}
 
-    range_event = list(event_info_collection.find({'$and': [filter_dict]}))
-    return jsonify(dumps(range_event))
+    range_event = event_info_collection.find({'$and': [filter_dict]})
+    range_event = [item for item in range_event] # turn to list
+    for item in range_event: # Object of type ObjectId is not JSON serializable
+        del item['_id']
+    
+    return jsonify(range_event)
 
 # 給定 attendees (人數), 回傳適合的活動場地
 @app.route('/show_locations')
@@ -54,24 +58,34 @@ def show_locations():
     Input parameters: 
     1. attendees (str in int format)
     '''
-    attendees = int(request.args.get('attendees'))
-    if attendees:
-        if attendees <= 5:
-            range_space = list(space_info_collection.find({'space_capacity': {'$eq': '3-5'}}))
-        elif attendees <= 10:
-            range_space = list(space_info_collection.find({'space_capacity': {'$eq': '6-10'}}))
-        elif attendees <= 20:
-            range_space = list(space_info_collection.find({'space_capacity': {'$eq': '11-20'}}))
-        elif attendees <= 50:
-            range_space = list(space_info_collection.find({'space_capacity': {'$eq': '21-50'}}))
-        elif attendees <= 100:
-            range_space = list(space_info_collection.find({'space_capacity': {'$eq': '51-100'}}))
-        else:
-            range_space = ['Too many attendees! The largest space can accommodate up to 100 people at most.']
-    else:
-        range_space = ['Please specify the number of attendees for your event.']
+    attendees = request.args.get('attendees')
 
-    return jsonify(dumps(range_space))
+    if attendees:
+        try:
+            attendees = int(attendees)
+            if attendees <= 0:
+                return 'Please specify a valid number of attendees for your event.', 400
+            elif attendees <= 5:
+                range_space = space_info_collection.find({'space_capacity': {'$eq': '3-5'}})
+            elif attendees <= 10:
+                range_space = space_info_collection.find({'space_capacity': {'$eq': '6-10'}})
+            elif attendees <= 20:
+                range_space = space_info_collection.find({'space_capacity': {'$eq': '11-20'}})
+            elif attendees <= 50:
+                range_space = space_info_collection.find({'space_capacity': {'$eq': '21-50'}})
+            elif attendees <= 100:
+                range_space = space_info_collection.find({'space_capacity': {'$eq': '51-100'}})
+            else:
+                return 'Too many attendees! The largest space can accommodate up to 100 people at most.', 400
+        except:
+            return 'Please specify a valid number of attendees for your event.', 400
+    else:
+        return 'Please specify the number of attendees for your event.', 400
+    
+    range_space = [item for item in range_space] # turn to list
+    for item in range_space: # Object of type ObjectId is not JSON serializable
+        del item['_id']
+    return jsonify(range_space)
 
 # 利用API建立活動
 @app.route('/create_events', methods = ['POST'])
