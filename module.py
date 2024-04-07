@@ -31,6 +31,7 @@ client = pymongo.MongoClient(mongo_access)
 db = client['event_site']
 event_info_collection = db['event_information']
 space_info_collection = db['space_information']
+event_tag_collection = db['event_tag']
 
 # ----- google calendar setting ----- 
 
@@ -102,12 +103,21 @@ def build_event(**kwargs):
         max_event_id = event_info_collection.find_one(sort = [('event_id', -1)])['event_id']
     except:
         max_event_id = 0
-    info = {'event_id': max_event_id + 1, 'gcalendar_id': gcalendar_id}
+    event_id_allocate = max_event_id + 1
+    info = {'event_id': event_id_allocate, 'gcalendar_id': gcalendar_id}
     for k, v in kwargs.items(): 
         info[k] = v
     info['updt_date'] = datetime.now()
     event_info_collection.insert_many([info])
     print('Event inserted to mongodb. ')
+
+    # event_tag
+    if kwargs.get('tag'):
+        for tag in kwargs['tag']:
+            if event_tag_collection.find({'tag': tag}).distinct('event_id'):
+                event_tag_collection.update_one({'tag': tag}, {'$push': {'event_id': event_id_allocate}})
+            else:
+                event_tag_collection.insert_one({'tag': tag, 'event_id': [event_id_allocate]})
 
 
 # ----- add attendees function ----- 

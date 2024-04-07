@@ -13,9 +13,9 @@ def show_events():
     2. range_end_time (str, 'yyyy-mm-ddThh:mm:ss')
     3. location (str)
     4. capacity (str, '3-5' or '6-10' or '11-20' or '21-50' or '51-100')
+    5. tag (str)
     '''
     filter_dict = {}
-
 
     # ----- time range -----
     range_bgn_time = request.args.get('range_bgn_time')
@@ -30,19 +30,26 @@ def show_events():
         range_end_time = datetime.strptime(range_end_time, '%Y-%m-%d')
         filter_dict['event_bgn_time'] = {'$lt': range_end_time}
     
-
     # ----- location -----
     location = request.args.get('location') # 輸入場地名稱
     capacity = request.args.get('capacity') # 單純是輸入人數區間
     if location and capacity:
         space_name_lst = space_info_collection.find({'space_capacity': {'$eq': capacity}}).distinct('space_name')
-        fin_loc_list = list(set(space_name_lst) & set([location]))
+        location_lst = location.split(',')
+        fin_loc_list = list(set(space_name_lst) & set(location_lst))
         filter_dict['event_location'] = {'$in': fin_loc_list}
     if location and (not capacity):
-        filter_dict['event_location'] = {'$eq': location}
+        location_lst = location.split(',')
+        filter_dict['event_location'] = {'$in': location_lst}
     if (not location) and capacity:
         space_name_lst = space_info_collection.find({'space_capacity': {'$eq': capacity}}).distinct('space_name')
         filter_dict['event_location'] = {'$in': space_name_lst}
+
+    # ----- tag -----
+    tag = request.args.get('tag')
+    if tag:
+        tag_list = tag.split(',')
+        filter_dict['tag'] = {'$in': tag_list}
 
     range_event = event_info_collection.find({'$and': [filter_dict]})
     range_event = [item for item in range_event] # turn to list
@@ -97,11 +104,14 @@ def create_events():
     3. event_end_time (str, 'yyyy-mm-ddThh:mm:ss')
     4. event_location (str)
     5. event_host (str)
+    6. tag (str)
     '''
     data = request.get_json()
     
     data['event_bgn_time'] = datetime.fromisoformat(data['event_bgn_time']) 
     data['event_end_time'] = datetime.fromisoformat(data['event_end_time']) 
+
+    data['tag'] = data['tag'].split(',')
 
     build_event(**data)
     return jsonify(data)
