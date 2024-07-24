@@ -1,8 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from module import *
+from datetime import datetime
+import logging
 
 # 初始化Flask伺服器
 app = Flask(__name__)
+
+logging.basicConfig(level=logging.INFO)
 
 # 給定bgn_time(時間範圍開始) / end_time(時間範圍結束) / location / capacity, 回傳條件內的活動
 @app.route('/show_events')
@@ -20,14 +24,12 @@ def show_events():
     # ----- time range -----
     range_bgn_time = request.args.get('range_bgn_time')
     if range_bgn_time:
-        # range_bgn_time = datetime.strptime(range_bgn_time, '%Y-%m-%dT%H:%M')
-        range_bgn_time = datetime.strptime(range_bgn_time, '%Y-%m-%d')
+        range_bgn_time = parse_datetime(range_bgn_time)
         filter_dict['event_end_time'] = {'$gt': range_bgn_time}
 
     range_end_time = request.args.get('range_end_time')
     if range_end_time:
-        # range_end_time = datetime.strptime(range_end_time, '%Y-%m-%dT%H:%M')
-        range_end_time = datetime.strptime(range_end_time, '%Y-%m-%d')
+        range_end_time = parse_datetime(range_end_time)
         filter_dict['event_bgn_time'] = {'$lt': range_end_time}
     
     # ----- location -----
@@ -108,8 +110,8 @@ def create_events():
     '''
     data = request.get_json()
     
-    data['event_bgn_time'] = datetime.fromisoformat(data['event_bgn_time']) 
-    data['event_end_time'] = datetime.fromisoformat(data['event_end_time']) 
+    data['event_bgn_time'] = parse_datetime(data['event_bgn_time']) 
+    data['event_end_time'] = parse_datetime(data['event_end_time']) 
 
     data['tag'] = data['tag'].split(',')
 

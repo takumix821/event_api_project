@@ -18,6 +18,17 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
+
+
+def parse_datetime(datetime_str):
+    for fmt in ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M'):
+        try:
+            return datetime.strptime(datetime_str, fmt)
+        except ValueError:
+            pass
+    raise ValueError(f"Time data '{datetime_str}' does not match format '%Y-%m-%dT%H:%M:%S' or '%Y-%m-%dT%H:%M'")
+
+
 # ----- pymongo setting -----
 
 path = '../event_site_project_access/mongodb_access.txt'
